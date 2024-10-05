@@ -623,46 +623,86 @@ async def handle_all_discounted_products(query):
 
 
 async def display_filter_options(query):
-    print("SALAMMMMMMMMMMMMMMMMMMMM @@@@")
+    print(query)
     keyboard = [
         [InlineKeyboardButton("Filter by Brand", callback_data='filter_brand')],
         [InlineKeyboardButton("Filter by Category", callback_data='filter_category')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    print(reply_markup)
     await query.message.reply_text("Select filter type:", reply_markup=reply_markup)
 
 
 async def display_brand_filter_options(query):
-    print("SALAMMMMMMMMMMMMMMMMMMMM @")
     brands = await fetch_all_brands()
+
+    if not brands:
+        await query.message.reply_text("No brands available for filtering.")
+        return
 
     keyboard = [
         [InlineKeyboardButton(brand['title'], callback_data=f'brand_{brand["id"]}')]
         for brand in brands
     ]
-    if not brands:
-        await query.message.reply_text("No brands available for filtering.")
-        return
-    
-    print(query)
-    
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.message.reply_text("Select a brand:", reply_markup=reply_markup)
 
+async def show_filter_brand_products(selection):
+    pass
 
 async def display_category_filter_options(query):
     categories = await fetch_all_categories()
+
+    if not categories:
+        await query.message.reply_text("No categories available for filtering.")
+        return
+
     keyboard = [
         [InlineKeyboardButton(category['title'], callback_data=f'category_{category["id"]}')]
         for category in categories
     ]
-    if not categories:
-        await query.message.reply_text("No categories available for filtering.")
-        return
-    
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.message.reply_text("Select a category:", reply_markup=reply_markup)
+
+
+from django.utils import timezone
+from datetime import datetime
+
+async def display_by_brand(update: Update, context: CallbackContext):
+    query = update.callback_query
+    choice = query.data
+    brand_id = choice.split('_')[1]
+    
+    if brand_id:
+        products = await fetch_products_by_brand(brand_id)
+        if products:
+            for product in products:
+                discount_end_date = product['discount_end_date']
+                # Zaman dilimi içerip içermediğini kontrol et
+                if isinstance(discount_end_date, datetime) and timezone.is_naive(discount_end_date):
+                    product['discount_end_date'] = timezone.make_aware(discount_end_date)
+                await display_product(query.message, product)
+        else:
+            await query.message.reply_text("No products found.")
+    else:
+        await query.message.reply_text("Invalid brand ID.")
+
+async def display_by_category(update: Update, context: CallbackContext):
+    query = update.callback_query
+    choice = query.data
+    category_id = choice.split('_')[1]
+    
+    if category_id:
+        products = await fetch_products_by_category(category_id)
+        if products:
+            for product in products:
+                discount_end_date = product['discount_end_date']
+                if isinstance(discount_end_date, datetime) and timezone.is_naive(discount_end_date):
+                    product['discount_end_date'] = timezone.make_aware(discount_end_date)
+                await display_product(query.message, product)
+        else:
+            await query.message.reply_text("No products found.")
+    else:
+        await query.message.reply_text("Invalid category ID.")
 
 
 async def prompt_search_product(query, context):
@@ -670,42 +710,17 @@ async def prompt_search_product(query, context):
     context.user_data['search_mode'] = True
 
 async def specific_filter_handler(update: Update, context: CallbackContext):
-    print("SALAAAAAAAAAAAAAAMMMMMMMMM")
     query = update.callback_query
-    data = query.data
-    print(data)
-
-    if len(data) != 2:
-        await query.message.reply_text("Invalid filter selection.")
+    choice = query.data
+    if choice == 'filter_brand':
+        return await display_brand_filter_options(query)
+    elif choice == 'filter_category':
+        return await display_category_filter_options(query)
+    else:
+        await query.message.reply_text("Unknown filter type.")
         return
 
-    filter_type, value = data
-    logging.info(f"Filter type selected: {filter_type}, Value: {value}")
-
-    try:
-        print(filter_type)
-        if filter_type == 'brand':
-            print("FIlter brnd")
-            products = await fetch_products_by_brand(value)
-        elif filter_type == 'category':
-            print("FIlter categry")
-            products = await fetch_products_by_category(value)
-        else:
-            await query.message.reply_text("Unknown filter type.")
-            return
-
-        if not products:
-            await query.message.reply_text(f"No discounted products found for the selected {filter_type}.")
-            return
-
-        for product in products:
-            await display_product(query.message, product)
-    except Exception as e:
-        logging.error(f"Error fetching products: {e}")
-        await query.message.reply_text("An error occurred while fetching products.")
-
-
-
+    
 async def handle_search_query(update: Update, context: CallbackContext):
     if context.user_data.get('search_mode'):
         search_query = update.message.text

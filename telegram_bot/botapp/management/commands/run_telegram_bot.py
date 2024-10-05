@@ -4,7 +4,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandle
 import logging
 from django.conf import settings
 
-from botapp.bot import start, register, feedback_command, help_command, languages_command, discounts_command, delete_me, profile_command, location_handler, text_message_handler, handle_feedback, language_selection, filter_search_handler, specific_filter_handler, command_restriction, button_handler
+from botapp.bot import start, register, feedback_command, help_command, languages_command, discounts_command, delete_me, profile_command, location_handler, text_message_handler, handle_feedback, language_selection, filter_search_handler, specific_filter_handler, command_restriction, button_handler, display_by_brand, display_by_category
 from dotenv import load_dotenv
 import os
 
@@ -43,8 +43,9 @@ class Command(BaseCommand):
         app.add_handler(CallbackQueryHandler(button_handler, pattern='^(male|female|other)$'))
         app.add_handler(CallbackQueryHandler(language_selection, pattern='^(az|en|tr|ru)$'))
         app.add_handler(CallbackQueryHandler(filter_search_handler, pattern='^(all|filter|search)$'))
-        app.add_handler(CallbackQueryHandler(specific_filter_handler, pattern='^(brand|category)'))  # Ensure this is correct
-
+        app.add_handler(CallbackQueryHandler(specific_filter_handler, pattern='^(filter_brand|filter_category)$'))
+        app.add_handler(CallbackQueryHandler(display_by_brand, pattern=r'^brand_\d+$'))
+        app.add_handler(CallbackQueryHandler(display_by_category, pattern=r'^category_\d+$'))
         app.add_handler(MessageHandler(filters.COMMAND, command_restriction))
 
         app.run_polling()
