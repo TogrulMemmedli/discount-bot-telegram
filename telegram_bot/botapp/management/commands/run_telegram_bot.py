@@ -5,6 +5,11 @@ import logging
 from django.conf import settings
 
 from botapp.bot import start, register, feedback_command, help_command, languages_command, discounts_command, delete_me, profile_command, location_handler, text_message_handler, handle_feedback, language_selection, filter_search_handler, specific_filter_handler, command_restriction, button_handler
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -16,7 +21,11 @@ class Command(BaseCommand):
     help = 'Runs the Telegram bot'
 
     def handle(self, *args, **kwargs):
-        app = ApplicationBuilder().token("7374653318:AAHPCT9PcHaxyiNSEiJuSsRYFicHztpnWCE").build()
+        bot_token = os.getenv("TELEGRAM_BOT_API")
+        if not bot_token:
+            logging.error("TELEGRAM_BOT_TOKEN environment variable not set.")
+            return
+        app = ApplicationBuilder().token(bot_token).build()
         
         app.add_handler(CommandHandler("start", start))
         app.add_handler(CommandHandler("register", register))

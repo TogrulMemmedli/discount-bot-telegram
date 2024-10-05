@@ -374,11 +374,7 @@ def auto_language(context, user):
     return language
 
 async def start(update: Update, context: CallbackContext):
-    print("START")
-    user = update.effective_user
-    brands = await fetch_all_brands()
-    print(brands)
-    
+    user = update.effective_user    
     language = auto_language(context, user)
 
     print(user)
