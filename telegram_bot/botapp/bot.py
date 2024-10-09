@@ -5,9 +5,9 @@ import psycopg2
 from django.db import transaction
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters, CallbackContext, ContextTypes
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
-from .models import Profile, Product, Brand, Category, Recommendations, Feedback, Stats
+from .models import Profile, Product, Brand, Category, Recommendations, Feedback, Stats, SavedProduct
 from django.db import models
 from django.db.models import Q
 from asgiref.sync import sync_to_async
@@ -15,6 +15,7 @@ from telegram.helpers import escape_markdown
 import re
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone 
+import asyncio
 
 load_dotenv()
 def connect_db():
@@ -162,7 +163,6 @@ languages = {
 
 @sync_to_async
 def fetch_all_discounted_products_sync():
-    print("Fetch all discount products")
     return list(Product.objects.filter(
         discount_end_date__gte=datetime.now(),
         discount_start_date__lte=datetime.now()
@@ -172,7 +172,6 @@ async def fetch_all_discounted_products():
 
 @sync_to_async
 def fetch_all_brands_sync():
-    print("Fetch brands")
     return list(Brand.objects.all().values())
 
 async def fetch_all_brands():
@@ -180,15 +179,30 @@ async def fetch_all_brands():
 
 @sync_to_async
 def fetch_all_categories_sync():
-    print("Fetch categories")
     return list(Category.objects.all().values())
 
 async def fetch_all_categories():
     return await fetch_all_categories_sync()
 
 @sync_to_async
+def fetch_user_favorite_brands(user):
+    return list(user.favorite_brands.values_list('id', flat=True))
+
+@sync_to_async
+def fetch_products_by_brand_ids(brand_ids):
+    return list(Product.objects.filter(brand_id__in=brand_ids).values())
+
+async def fetch_all_fav_brands_products(user):
+    favorite_brand_ids = await fetch_user_favorite_brands(user)
+
+    if favorite_brand_ids:
+        products = await fetch_products_by_brand_ids(favorite_brand_ids)
+        return products
+    else:
+        return []
+    
+@sync_to_async
 def fetch_products_by_brand_sync(brand_id):
-    print("FILTER BY BRANDS FETCH")
     return list(Product.objects.filter(
         brand_id=brand_id,
         discount_end_date__gte=datetime.now(),
@@ -199,8 +213,22 @@ async def fetch_products_by_brand(brand_id):
     return await fetch_products_by_brand_sync(brand_id)
     
 @sync_to_async
+def fetch_brand_by_id_sync(brand_id):
+    return Brand.objects.get(id=brand_id)
+
+async def fetch_brand_by_id(brand_id):
+    return await fetch_brand_by_id_sync(brand_id)
+
+@sync_to_async
+def fetch_brand_by_id_sync(brand_id):
+    return Brand.objects.get(id=brand_id)
+
+async def fetch_brand_by_id(brand_id):
+    return await fetch_brand_by_id_sync(brand_id)
+    
+
+@sync_to_async
 def fetch_products_by_category_sync(category_id):
-    print("FILTER BY CATEGORY FETCH")
     return list(Product.objects.filter(
         category_id=category_id,
         discount_end_date__gte=datetime.now(),
@@ -213,7 +241,6 @@ async def fetch_products_by_category(category_id):
 
 @sync_to_async
 def is_user_registered_sync(telegram_id):
-    print(Profile.objects.all())
     return Profile.objects.filter(telegram_id=telegram_id).exists()
 
 async def is_user_registered(telegram_id):
@@ -230,6 +257,13 @@ def delete_user_from_db_sync(user_id):
 
 async def delete_user_from_db(user_id):
     return await delete_user_from_db_sync(user_id)
+
+
+# @sync_to_async
+# def get_all_saved_product_sync(user):
+#     try:
+#         saved_products = SavedProduct.objects.filter(user__telegram_id=user)
+
 
 @sync_to_async
 def store_user_recommendation_sync(description, user_id):
@@ -286,7 +320,6 @@ def fetch_products_by_search_sync(search_query: str):
         return []
 
 async def fetch_products_by_search(search_query: str):
-    print("HERE")
     return await fetch_products_by_search_sync(search_query)
 
 
@@ -377,7 +410,6 @@ async def start(update: Update, context: CallbackContext):
     user = update.effective_user    
     language = auto_language(context, user)
 
-    print(user)
     await update.message.reply_text(languages[language]["greeting"].format(name=user.first_name))
 
 async def active_user(update: Update, context: CallbackContext):
@@ -426,7 +458,6 @@ def check_birthday(birthday_input):
     }
 
     birthday_input_casefold = birthday_input.lower()
-    print("Data:", birthday_input_casefold)
     
     for lang, month_dict in months.items():
         for turkish, english in month_dict.items():
@@ -456,10 +487,8 @@ async def ask_birthday(update: Update, context: CallbackContext):
 
     if context.user_data.get('step') == 'ask_birthday':
         birthday = update.message.text.strip()
-        print(birthday)
         
         formatted_birthday = check_birthday(birthday)
-        print(formatted_birthday)
         
         if not formatted_birthday:
             await update.message.reply_text(languages[language]["error_invalid_birthday"])
@@ -499,21 +528,16 @@ async def button_handler(update: Update, context: CallbackContext):
         context.user_data['step'] = 'ask_location'
     
 async def help_command(update: Update, context: CallbackContext):
-    print("HELP COMMAND")
     user = update.effective_user
     language = auto_language(context, user)
-    print(language)
 
     if await is_user_registered(user.id):
-        print(user.id)
-        print("Somewhere")
         available_commands = (
             f"/start - {languages[language]['help_start']}\n"
             f"/register - {languages[language]['help_register']}\n"
             f"/discounts - {languages[language]['help_discounts']}\n"
             f"/languages - {languages[language]['help_languages']}\n"
         )
-        print("SOMEWHERE ELSE")
         await update.message.reply_text(
             languages[language]['available_commands'] + f"\n{available_commands}"
         )
@@ -521,7 +545,6 @@ async def help_command(update: Update, context: CallbackContext):
         await update.message.reply_text(languages[language]['not_registered_help'])
 
 async def languages_command(update: Update, context: CallbackContext):
-    print("LANGUAGE COMMAND")
     keyboard = [
         [InlineKeyboardButton("🇦🇿 Azerbaijani", callback_data='az')],
         [InlineKeyboardButton("🇬🇧 English", callback_data='en')],
@@ -533,12 +556,10 @@ async def languages_command(update: Update, context: CallbackContext):
     await update.message.reply_text("Please select your language:", reply_markup=reply_markup)
 
 async def language_selection(update: Update, context: CallbackContext):
-    print("LANGUAGE SELECTION")
     query = update.callback_query
     selected_language = query.data
 
     context.user_data['language'] = selected_language
-    print(context.user_data)
 
     languages_change_message = {
         'en': "Language changed to English.",
@@ -567,6 +588,50 @@ async def discounts_command(update: Update, context: CallbackContext):
     await update.message.reply_text("Choose an option:", reply_markup=reply_markup)
 
 
+async def save_product(update: Update, context: CallbackContext):
+    query = update.callback_query
+    await query.answer()
+
+    product_id = query.data.split("_")[1]
+    
+    try:
+        product = await sync_to_async(Product.objects.get)(id=product_id)
+        user_id = query.from_user.id
+        user = await sync_to_async(Profile.objects.get)(telegram_id=user_id)
+
+        saved_product = await sync_to_async(SavedProduct.objects.filter)(user=user, product=product)
+
+        if await sync_to_async(saved_product.exists)():
+            await sync_to_async(saved_product.delete)()
+            message = f"Product {product.name} unsaved successfully!"
+        else:
+            await sync_to_async(SavedProduct.objects.create)(user=user, product=product)
+            message = f"Product {product.name} saved successfully!"
+
+        if query.message.text:
+            await query.edit_message_text(message)
+        else:
+            await query.message.reply_text(message)
+
+    except Product.DoesNotExist:
+        if query.message.text:
+            await query.edit_message_text(f"Product with id {product_id} does not exist.")
+        else:
+            await query.message.reply_text(f"Product with id {product_id} does not exist.")
+
+    except Profile.DoesNotExist:
+        if query.message.text:
+            await query.edit_message_text(f"User not found.")
+        else:
+            await query.message.reply_text(f"User not found.")
+            
+    except Exception as e:
+        if query.message.text:
+            await query.edit_message_text(f"An error occurred: {str(e)}")
+        else:
+            await query.message.reply_text(f"An error occurred: {str(e)}")
+
+            
 async def display_product(query_or_message, product):
     photo_url = product['image_url']
     if is_valid_url(photo_url):
@@ -579,9 +644,17 @@ async def display_product(query_or_message, product):
                 f"Original Price: {price} ₼\n"
                 f"Discounted Price: {discount_price} ₼\n"
                 f"Last Day: {product['discount_end_date'].strftime('%d %B %Y')}\n"
-                f"Link: {product['url']}\n"
             )
-            await query_or_message.reply_photo(photo=photo_url, caption=caption)
+
+            keyboard = [
+                [
+                    InlineKeyboardButton("Save", callback_data=f"save_{product['id']}"),
+                    InlineKeyboardButton("Link", url=product['url'])
+                ]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await query_or_message.reply_photo(photo=photo_url, caption=caption, reply_markup=reply_markup)
         except Exception as e:
             await query_or_message.reply_text(f"An error occurred while displaying the product: {product['name']}.")
     else:
@@ -600,13 +673,10 @@ def is_valid_url(url: str) -> bool:
 async def filter_search_handler(update: Update, context: CallbackContext):
     query = update.callback_query
     choice = query.data
-    print(choice)
 
     if choice == 'all':
         await handle_all_discounted_products(query)
     elif choice == 'filter':
-        print(query)
-        print(update.callback_query)
         await display_filter_options(query)
     elif choice == 'search':
         await prompt_search_product(query, context)
@@ -623,10 +693,10 @@ async def handle_all_discounted_products(query):
 
 
 async def display_filter_options(query):
-    print(query)
     keyboard = [
         [InlineKeyboardButton("Filter by Brand", callback_data='filter_brand')],
-        [InlineKeyboardButton("Filter by Category", callback_data='filter_category')]
+        [InlineKeyboardButton("Filter by Category", callback_data='filter_category')],
+        [InlineKeyboardButton("Show Favorite Brands Discounts", callback_data='filter_favoritebrands')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.message.reply_text("Select filter type:", reply_markup=reply_markup)
@@ -640,11 +710,39 @@ async def display_brand_filter_options(query):
         return
 
     keyboard = [
-        [InlineKeyboardButton(brand['title'], callback_data=f'brand_{brand["id"]}')]
+        [InlineKeyboardButton(brand['title'], callback_data=f'brand_{brand["id"]}'),
+         InlineKeyboardButton(f'add {brand['title']} favorite', callback_data=f'favbrand_{brand["id"]}')
+         ]
         for brand in brands
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.message.reply_text("Select a brand:", reply_markup=reply_markup)
+
+
+async def add_brand_favorite(update: Update, context: CallbackContext):
+    query = update.callback_query
+    choice = query.data
+    brand_id = choice.split('_')[1]
+    user_id = update.effective_user.id
+    
+    user = await sync_to_async(Profile.objects.get)(telegram_id=user_id)
+    
+    if brand_id:
+        brands = await fetch_brand_by_id(brand_id)
+        
+        if brands:
+            favorite_brands = await sync_to_async(list)(user.favorite_brands.filter(id=brands.id))
+            
+            if favorite_brands:
+                await sync_to_async(user.favorite_brands.remove)(brands)
+                await query.message.reply_text(f"{brands.title} başarıyla favorilerden silindi.")
+            else:
+                await sync_to_async(user.favorite_brands.add)(brands)
+                await query.message.reply_text(f"{brands.title} başarıyla favorilere eklendi.")
+        else:
+            await query.message.reply_text("No brand found.")
+    else:
+        await query.message.reply_text("Invalid brand ID.")
 
 async def show_filter_brand_products(selection):
     pass
@@ -677,7 +775,6 @@ async def display_by_brand(update: Update, context: CallbackContext):
         if products:
             for product in products:
                 discount_end_date = product['discount_end_date']
-                # Zaman dilimi içerip içermediğini kontrol et
                 if isinstance(discount_end_date, datetime) and timezone.is_naive(discount_end_date):
                     product['discount_end_date'] = timezone.make_aware(discount_end_date)
                 await display_product(query.message, product)
@@ -709,15 +806,31 @@ async def prompt_search_product(query, context):
     await query.message.reply_text("Please enter the product name or description to search for discounts:")
     context.user_data['search_mode'] = True
 
+async def display_favorite_brands_products(query, user):
+    user = await sync_to_async(Profile.objects.get)(telegram_id=user.id)
+
+    products = await fetch_all_fav_brands_products(user)
+
+    if not products:
+        await query.answer(text="Favori markalarınıza ait ürün bulunamadı.")  
+        return
+
+    for product in products:
+        await display_product(query, product) 
+
 async def specific_filter_handler(update: Update, context: CallbackContext):
     query = update.callback_query
+    user = query.from_user 
     choice = query.data
+
     if choice == 'filter_brand':
         return await display_brand_filter_options(query)
     elif choice == 'filter_category':
         return await display_category_filter_options(query)
+    elif choice == 'filter_favoritebrands':
+        return await display_favorite_brands_products(query.message, user)
     else:
-        await query.message.reply_text("Unknown filter type.")
+        await query.message.reply_text("Bilinmeyen filtre türü.")
         return
 
     
@@ -858,27 +971,102 @@ async def text_message_handler(update: Update, context: CallbackContext):
     else:
         await update.message.reply_text("I don't understand that command. Please follow the prompts.")
 
+async def send_scheduled_messages(context):
+    new_products = await sync_to_async(list)(
+        Product.objects.filter(created_at__gte=(timezone.now() - timedelta(hours=72)))
+    )
 
-# if __name__ == '__main__':
-#     app = ApplicationBuilder().token(os.getenv("TELEGRAM_BOT_API")).build()
+    if new_products:
+        users = await sync_to_async(list)(Profile.objects.all())
 
-#     app.add_handler(CommandHandler("start", start))
-#     app.add_handler(CommandHandler("register", register))
-#     app.add_handler(CommandHandler("feedback", feedback_command))  
-#     app.add_handler(CommandHandler("help", help_command))
-#     app.add_handler(CommandHandler("languages", languages_command))
-#     app.add_handler(CommandHandler("discounts", discounts_command))
-#     app.add_handler(CommandHandler('delete_me', delete_me))
-#     app.add_handler(CommandHandler("profile", profile_command))
+        for user in users:
+            favorite_brands_ids = await sync_to_async(list)(
+                user.favorite_brands.values_list('id', flat=True)
+            )
 
+            user_favorite_products = []
+            for product in new_products:
+                product_brand_id = await sync_to_async(lambda p: p.brand.id, thread_sensitive=True)(product)
+                if product_brand_id in favorite_brands_ids:
+                    user_favorite_products.append(product)
 
-#     app.add_handler(MessageHandler(filters.LOCATION, location_handler))  
-#     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_message_handler))  
-#     app.add_handler(CallbackQueryHandler(button_handler, pattern='^(male|female|other)$'))
-#     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_feedback))
-#     app.add_handler(CallbackQueryHandler(language_selection, pattern='^(az|en|tr|ru)$'))
-#     app.add_handler(CallbackQueryHandler(filter_search_handler, pattern='^(all|filter|search|filter_brand|filter_category)$'))
-#     app.add_handler(CallbackQueryHandler(specific_filter_handler, pattern='^(brand_|category_)'))
-#     app.add_handler(MessageHandler(filters.COMMAND, command_restriction))
+            if user_favorite_products:
+                try:
+                    await context.bot.send_message(
+                        chat_id=user.telegram_id,
+                        text="🆕 *Yenilikler!* En son eklenen indirimli ürünlere göz atın.",
+                        parse_mode='Markdown'
+                    )
+                except Exception as e:
+                    logging.error(f"Error sending new product message to {user.telegram_id}: {str(e)}")
 
-#     app.run_polling()
+                for product in user_favorite_products:
+                    price = Decimal(product.normal_price).quantize(Decimal('0.01'))
+                    discount_price = Decimal(product.discount_price).quantize(Decimal('0.01'))
+                    caption = (
+                        f"📌 *Title*: {product.name}\n"
+                        f"📝 *Description*: {product.description}\n"
+                        f"💰 *Original Price*: {price} ₼\n"
+                        f"🔥 *Discounted Price*: {discount_price} ₼\n"
+                        f"⏳ *Last Day*: {product.discount_end_date.strftime('%d %B %Y')}\n"
+                    )
+
+                    keyboard = [
+                        [
+                            InlineKeyboardButton("💾 Save", callback_data=f"save_{product.id}"),
+                            InlineKeyboardButton("🔗 Link", url=product.url)
+                        ]
+                    ]
+                    reply_markup = InlineKeyboardMarkup(keyboard)
+
+                    try:
+                        await context.bot.send_photo(
+                            chat_id=user.telegram_id,
+                            photo=product.image_url,
+                            caption=caption,
+                            reply_markup=reply_markup,
+                            parse_mode='Markdown'
+                        )
+                    except Exception as e:
+                        logging.error(f"Error sending product photo to {user.telegram_id}: {e}")
+
+                await asyncio.sleep(0.5)
+                
+def run_async_send_scheduled_messages(context):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    loop.run_until_complete(send_scheduled_messages(context))
+
+async def my_saved_products(update: Update, context: CallbackContext):
+    user_id = update.message.from_user.id
+
+    try:
+        user = await sync_to_async(Profile.objects.get)(telegram_id=user_id)
+
+        saved_products = await sync_to_async(lambda: list(SavedProduct.objects.filter(user=user)))()
+
+        if saved_products:
+
+            for saved_product in saved_products:
+                product = await sync_to_async(lambda: {
+                    'id': saved_product.product.id,
+                    'name': saved_product.product.name,
+                    'description': saved_product.product.description,
+                    'normal_price': saved_product.product.normal_price,
+                    'discount_price': saved_product.product.discount_price,
+                    'discount_end_date': saved_product.product.discount_end_date,
+                    'image_url': saved_product.product.image_url,
+                    'url': saved_product.product.url
+                })()
+
+                await display_product(update.message, product)
+
+        else:
+            await update.message.reply_text("You haven't saved any products yet.")
+
+    except Profile.DoesNotExist:
+        await update.message.reply_text("User not found. Please register first.")
+
+    except Exception as e:
+        await update.message.reply_text(f"An error occurred: {str(e)}")
