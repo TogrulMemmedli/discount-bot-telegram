@@ -711,7 +711,7 @@ async def display_brand_filter_options(query):
 
     keyboard = [
         [InlineKeyboardButton(brand['title'], callback_data=f'brand_{brand["id"]}'),
-         InlineKeyboardButton(f'add {brand['title']} favorite', callback_data=f'favbrand_{brand["id"]}')
+         InlineKeyboardButton(f'add {brand["title"]} favorite', callback_data=f'favbrand_{brand["id"]}')
          ]
         for brand in brands
     ]
