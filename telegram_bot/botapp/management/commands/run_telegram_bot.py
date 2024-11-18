@@ -105,12 +105,12 @@ class Command(BaseCommand):
         app.add_handler(MessageHandler(filters.COMMAND, command_restriction))
 
         current_time = datetime.now()
-        scheduled_time = current_time + timedelta(minutes=1)
+        # scheduled_time = current_time + timedelta(minutes=1)
 
         scheduler = BackgroundScheduler()
         scheduler.add_job(
             run_async_send_scheduled_messages,
-            trigger=CronTrigger(hour=21, minute=25),
+            trigger=CronTrigger(hour=17, minute=12, second=40),
             args=[app],
             name='send_scheduled_messages',
             replace_existing=True

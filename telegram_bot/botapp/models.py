@@ -1,4 +1,5 @@
 from django.db import models
+from decimal import Decimal
 
 class Brand(models.Model):
     title = models.CharField(max_length=255)
@@ -66,8 +67,6 @@ class Profile(models.Model):
     def __str__(self):
         return self.username
     
-
-from decimal import Decimal
 
 class Product(models.Model):
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE)  

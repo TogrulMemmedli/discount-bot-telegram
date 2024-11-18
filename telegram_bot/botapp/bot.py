@@ -814,6 +814,18 @@ def fetch_all_discounted_products_sync():
 async def fetch_all_discounted_products():
     return await fetch_all_discounted_products_sync()
 
+@sync_to_async
+def increment_click_count_sync(product_id):
+    try:
+        product = Product.objects.get(id=product_id)
+        product.click_count = product.click_count + 1 if product.click_count else 1
+        product.save()
+        return {"success": True, "message": "Click count incremented successfully."}
+    except Product.DoesNotExist:
+        return {"success": False, "message": "Product not found."}
+
+async def increment_click_count(product_id):
+    return await increment_click_count_sync(product_id)
 
 @sync_to_async
 def fetch_all_discounted_products_by_merchant_sync(id):
@@ -1666,6 +1678,8 @@ async def save_product(update: Update, context: CallbackContext):
 
 async def display_product(query_or_message, product, language):
     photo_url = product['image_url']
+    if len(product['description'])>61:
+        product['description'] = product['description'][:61]+"..."
     translations = {
         'tr': {
             'title': 'Başlık',
@@ -1714,8 +1728,10 @@ async def display_product(query_or_message, product, language):
     }
 
     messages = translations.get(language, translations['en'])
-
+    print(photo_url)
+    await increment_click_count(product_id=product['id'])
     if is_valid_url(photo_url):
+        print("Salam is valid url yoxlanıldı")
         try:
             price = Decimal(product['normal_price']).quantize(Decimal('0.01'))
             discount_price = Decimal(product['discount_price']).quantize(Decimal('0.01'))
@@ -2401,10 +2417,10 @@ async def send_product_details(user, product, context):
             price = Decimal(product.normal_price).quantize(Decimal('0.01'))
             discount_price = Decimal(product.discount_price).quantize(Decimal('0.01'))
             discount_percentage = ((price - discount_price) / price * 100).quantize(Decimal('0.01'))
-
+            await increment_click_count(product_id=product.id)
             brand_title = await sync_to_async(lambda: product.brand.title)()  
             category_title = await sync_to_async(lambda: product.category.title)() 
-
+            product.description=product.description[:61]+"..."
             captions = {
                 'en': (
                     f"<b>Title</b>: {product.name}\n"
@@ -2487,8 +2503,8 @@ def run_async_send_scheduled_messages(context):
     try:
         loop.run_until_complete(send_scheduled_messages(context))
     finally:
-        loop.close()
-
+        if not loop.is_closed():
+            loop.close()
 
 async def my_saved_products_filter(query, language):
     user_id =query.from_user.id
