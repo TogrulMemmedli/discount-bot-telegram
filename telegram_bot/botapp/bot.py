@@ -1385,13 +1385,13 @@ async def handle_user_response(update: Update, context: CallbackContext):
             parsed_birthdate = check_birthday(birthday_input)
             if not parsed_birthdate:
                 await update.message.reply_text(languages[language]['invalid_date_format'])
-                return
+                return await profile_command(update, context)
 
             new_birthdate = datetime.strptime(parsed_birthdate, "%d-%m-%Y")
             
             if new_birthdate < MIN_DATE:
                 await update.message.reply_text(languages[language]['birthdate_too_early'])
-                return  await profile_command(update, context)
+                return await profile_command(update, context)
             elif new_birthdate > MIN_AGE_DATE:
                 await update.message.reply_text(languages[language]['must_be_at_least_13'])
                 return await profile_command(update, context)
