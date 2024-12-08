@@ -34,6 +34,7 @@ def connect_db():
         return None
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
+
 languages = {
     'tr': {
         'telegram_id': 'Telegram ID',
@@ -811,8 +812,11 @@ def fetch_all_discounted_products_sync():
         discount_end_date__gte=datetime.now(),
         discount_start_date__lte=datetime.now()
     ).values())
+
+
 async def fetch_all_discounted_products():
     return await fetch_all_discounted_products_sync()
+
 
 @sync_to_async
 def increment_click_count_sync(product_id):
@@ -824,8 +828,10 @@ def increment_click_count_sync(product_id):
     except Product.DoesNotExist:
         return {"success": False, "message": "Product not found."}
 
+
 async def increment_click_count(product_id):
     return await increment_click_count_sync(product_id)
+
 
 @sync_to_async
 def fetch_all_discounted_products_by_merchant_sync(id):
@@ -834,6 +840,8 @@ def fetch_all_discounted_products_by_merchant_sync(id):
         discount_end_date__gte=datetime.now(),
         discount_start_date__lte=datetime.now()
     ).values())
+
+
 async def fetch_all_discounted_products_by_merchant(id):
     return await fetch_all_discounted_products_by_merchant_sync(id)
 
@@ -842,19 +850,24 @@ async def fetch_all_discounted_products_by_merchant(id):
 def fetch_all_brands_sync():
     return list(Brand.objects.all().values())
 
+
 async def fetch_all_brands():
     return await fetch_all_brands_sync()
+
 
 @sync_to_async
 def fetch_all_categories_sync():
     return list(Category.objects.all().values())
 
+
 async def fetch_all_categories():
     return await fetch_all_categories_sync()
+
 
 @sync_to_async
 def fetch_all_stores_sync():
     return list(Merchant.objects.all().values())
+
 
 async def fetch_all_stores():
     return await fetch_all_stores_sync()
@@ -864,9 +877,11 @@ async def fetch_all_stores():
 def fetch_user_favorite_brands(user):
     return list(user.favorite_brands.values_list('id', flat=True))
 
+
 @sync_to_async
 def fetch_products_by_brand_ids(brand_ids):
     return list(Product.objects.filter(brand_id__in=brand_ids).values())
+
 
 async def fetch_all_fav_brands_products(user):
     favorite_brand_ids = await fetch_user_favorite_brands(user)
@@ -882,9 +897,11 @@ async def fetch_all_fav_brands_products(user):
 def fetch_user_favorite_categories(user):
     return list(user.favorite_categories.values_list('id', flat=True))
 
+
 @sync_to_async
 def fetch_products_by_categories_ids(category_ids):
     return list(Product.objects.filter(category_id__in=category_ids).values())
+
 
 async def fetch_all_fav_categories_products(user):
     favorite_category_ids = await fetch_user_favorite_categories(user)
@@ -895,12 +912,15 @@ async def fetch_all_fav_categories_products(user):
     else:
         return []
     
+
 @sync_to_async
 def fetch_user_favorite_category_sync(user):
     return list(user.favorite_categories.all())
 
+
 async def fetch_user_favorite_category(user):
     return await fetch_user_favorite_category_sync(user)
+
 
 @sync_to_async
 def fetch_products_by_brand_sync(brand_id):
@@ -910,10 +930,10 @@ def fetch_products_by_brand_sync(brand_id):
         discount_start_date__lte=datetime.now()
     ).values())
 
+
 async def fetch_products_by_brand(brand_id):
     return await fetch_products_by_brand_sync(brand_id)
     
-
 
 @sync_to_async
 def fetch_products_by_time_sync(start_date, end_date):
@@ -956,16 +976,20 @@ def fetch_products_by_time_sync(start_date, end_date):
 async def fetch_products_by_time_brand(start_date, end_date):
     return await fetch_products_by_time_sync(start_date, end_date)
 
+
 @sync_to_async
 def fetch_brand_by_id_sync(brand_id):
     return Brand.objects.get(id=brand_id)
 
+
 async def fetch_brand_by_id(brand_id):
     return await fetch_brand_by_id_sync(brand_id)
+
 
 @sync_to_async
 def fetch_category_by_id_sync(id):
     return Category.objects.get(id=id)
+
 
 async def fetch_category_by_id(id):
     return await fetch_category_by_id_sync(id)
@@ -979,6 +1003,7 @@ def fetch_products_by_category_sync(category_id):
         discount_start_date__lte=datetime.now()
     ).values())
 
+
 async def fetch_products_by_category(category_id):
     return await fetch_products_by_category_sync(category_id)
 
@@ -991,15 +1016,19 @@ def fetch_products_by_store_sync(store_id):
         discount_start_date__lte=datetime.now()
     ).values())
 
+
 async def fetch_products_by_store(store_id):
     return await fetch_products_by_store_sync(store_id)
+
 
 @sync_to_async
 def is_user_registered_sync(telegram_id):
     return Profile.objects.filter(telegram_id=telegram_id).exists()
 
+
 async def is_user_registered(telegram_id):
     return await is_user_registered_sync(telegram_id)
+
 
 @sync_to_async
 def delete_user_from_db_sync(user_id):
@@ -1009,6 +1038,7 @@ def delete_user_from_db_sync(user_id):
         return True
     except Profile.DoesNotExist:
         return False
+
 
 async def delete_user_from_db(user_id):
     return await delete_user_from_db_sync(user_id)
@@ -1022,6 +1052,7 @@ def store_user_recommendation_sync(description, user_id):
     except Exception as e:
         logging.error(f"Error storing user recommendation data: {e}")
         return False
+
 
 async def store_user_recommendation(description, user_id):
     return await store_user_recommendation_sync(description, user_id)
@@ -1040,6 +1071,7 @@ def store_user_data_sync(user_data):
     except Exception as e:
         logging.error(f"Error storing user data: {e}")
         return None  
+
 
 async def store_user_data(user_data):
     return await store_user_data_sync(user_data)
@@ -1065,6 +1097,7 @@ async def add_user_favorite_category(user_id, category):
         logging.error(f"Error storing user favorite category data: {e}")
         return False
 
+
 @sync_to_async
 def store_recommendation_data_sync(recommendation_data):
     try:
@@ -1076,8 +1109,10 @@ def store_recommendation_data_sync(recommendation_data):
         logging.error(f"Error storing recommendation data: {e}")
         return False
 
+
 async def store_recommendation_data(recommendation_data):
     return await store_recommendation_data_sync(recommendation_data)
+
 
 @sync_to_async
 def profile_data_sync(tg_id):
@@ -1087,9 +1122,11 @@ def profile_data_sync(tg_id):
         logging.error(f"Error fetching profile data: {e}")
         return None
 
+
 async def profile_data(tg_id):
     return await profile_data_sync(tg_id)
     
+
 @sync_to_async
 def fetch_products_by_search_sync(search_query: str):
     try:
@@ -1103,6 +1140,7 @@ def fetch_products_by_search_sync(search_query: str):
     except Exception as e:
         logging.error(f"Error fetching products by search: {e}")
         return []
+
 
 async def fetch_products_by_search(search_query: str):
     return await fetch_products_by_search_sync(search_query)
@@ -1143,6 +1181,7 @@ def get_user_profile_sync(user_id):
         logging.error(f"Error retrieving profile for telegram_id {user_id}: {e}")
         return None
 
+
 async def get_user_profile(user_id):
     return await get_user_profile_sync(user_id)
 
@@ -1169,8 +1208,10 @@ def get_user_language_sync(user_id, update, context):
         logging.error(f"Error retrieving profile for telegram_id {user_id}: {e}")
         return "en"
 
+
 async def get_user_language(user_id, update, context):
     return await get_user_language_sync(user_id, update, context)
+
 
 async def profile_command_filter(query, user_id):
     user_profile = await get_user_profile(user_id)
@@ -1200,11 +1241,10 @@ async def profile_command_filter(query, user_id):
     else:
         await query.message.reply_text(languages[language]['profile_not_found'])
 
+
 async def profile_command(update: Update, context):
     user = update.effective_user
-
     user_profile = await get_user_profile(user.id)
-
     if user_profile:
         language = user_profile.get('language', 'en')
         profile_info = (
@@ -1220,7 +1260,6 @@ async def profile_command(update: Update, context):
             f"💰 {languages[language]['discount']}: {user_profile['min_discount']}%-{user_profile['max_discount']}%\n"
             f"⏰ {languages[language]['notification_times']}: {user_profile['min_time']} - {user_profile['max_time']}\n"
         )
-
         keyboard = [
             [InlineKeyboardButton(languages[language]['edit'], callback_data="edit_profile")]
         ]
@@ -1231,7 +1270,7 @@ async def profile_command(update: Update, context):
         elif update.callback_query:
             await update.callback_query.message.reply_text(profile_info, reply_markup=reply_markup)
     else:
-        language = user_profile.get('language', 'en')
+        language = await get_user_language(user.id, update, context)
         if update.message:
             await update.message.reply_text(languages[language]['profile_not_found'])
         elif update.callback_query:
@@ -1240,6 +1279,7 @@ async def profile_command(update: Update, context):
 
 MIN_DATE = datetime(1901, 1, 1)
 MIN_AGE_DATE = datetime.now() - timedelta(days=13 * 365)
+
 
 @sync_to_async
 def update_profile_data(user_id, field, new_value):
@@ -1255,6 +1295,7 @@ def update_profile_data(user_id, field, new_value):
         logging.error(f"Error updating profile for telegram_id {user_id}: {e}")
         return False
 
+
 async def edit_profile_options(update: Update, context: CallbackContext):
     query = update.callback_query
     await query.answer()
@@ -1269,6 +1310,7 @@ async def edit_profile_options(update: Update, context: CallbackContext):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await query.message.reply_text(languages[language]['select_edit_option'], reply_markup=reply_markup)
+
 
 async def edit_user_location(update: Update, context: CallbackContext):
     await update.callback_query.answer()
@@ -1339,13 +1381,21 @@ async def handle_user_response(update: Update, context: CallbackContext):
         
     elif edit_field == 'birthday':
         try:
-            new_birthdate = datetime.strptime(update.message.text, "%d-%m-%Y")
+            birthday_input = update.message.text
+            parsed_birthdate = check_birthday(birthday_input)
+            if not parsed_birthdate:
+                await update.message.reply_text(languages[language]['invalid_date_format'])
+                return
+
+            new_birthdate = datetime.strptime(parsed_birthdate, "%d-%m-%Y")
+            
             if new_birthdate < MIN_DATE:
                 await update.message.reply_text(languages[language]['birthdate_too_early'])
-                return
+                return  await profile_command(update, context)
             elif new_birthdate > MIN_AGE_DATE:
                 await update.message.reply_text(languages[language]['must_be_at_least_13'])
-                return
+                return await profile_command(update, context)
+
             
             success = await update_profile_data(user_id, 'birthday', new_birthdate)
             if success:
@@ -1358,6 +1408,7 @@ async def handle_user_response(update: Update, context: CallbackContext):
     context.user_data.pop('edit_field', None)
     await profile_command(update, context)
 
+
 @sync_to_async
 def update_user_language_sync(telegram_id, language):
     try:
@@ -1369,9 +1420,11 @@ def update_user_language_sync(telegram_id, language):
     except Exception as e:
         print(f"Error updating language: {e}")
 
+
 async def update_user_language(telegram_id, language):
     await update_user_language_sync(telegram_id, language)
     
+
 async def change_language(update: Update, context: CallbackContext):
     query = update.callback_query
     selected_language = query.data
@@ -1387,11 +1440,13 @@ async def change_language(update: Update, context: CallbackContext):
 
     await query.edit_message_text(text=languages[selected_language]['greeting'].format(name=query.from_user.first_name))
 
+
 def auto_language(context, user):
     language = context.user_data.get('language', 'en') 
     if user.language_code in languages.keys():
         language = context.user_data.get('language', user.language_code)
     return language
+
 
 async def start(update: Update, context: CallbackContext):
     user = update.effective_user    
@@ -1414,6 +1469,7 @@ async def active_user(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
     return await profile_data(tg_id=user_id)
 
+
 async def delete_me(update: Update, context: CallbackContext) -> None:
     user_id = update.effective_user.id
     language = await get_user_language(user_id, update, context)
@@ -1421,6 +1477,7 @@ async def delete_me(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text(languages[language]['delete_success'])
     else:
         await update.message.reply_text(languages[language]['delete_failure'])
+
 
 async def register(update: Update, context: CallbackContext):
     user = update.effective_user
@@ -1432,6 +1489,7 @@ async def register(update: Update, context: CallbackContext):
 
     await update.message.reply_text(languages[language]["ask_birthday"])
     context.user_data['step'] = 'ask_birthday'
+
 
 def check_birthday(birthday_input):
     months = {
@@ -1479,6 +1537,7 @@ def check_birthday(birthday_input):
             continue
 
     return False
+
 
 async def ask_birthday(update: Update, context: CallbackContext):
     user = update.effective_user
@@ -1576,7 +1635,6 @@ async def help_command(update: Update, context: CallbackContext):
         )
     else:
         await update.message.reply_text(languages[language]["not_registered"])
-
 
 
 async def languages_command(update: Update, context: CallbackContext):
@@ -1728,10 +1786,8 @@ async def display_product(query_or_message, product, language):
     }
 
     messages = translations.get(language, translations['en'])
-    print(photo_url)
     await increment_click_count(product_id=product['id'])
     if is_valid_url(photo_url):
-        print("Salam is valid url yoxlanıldı")
         try:
             price = Decimal(product['normal_price']).quantize(Decimal('0.01'))
             discount_price = Decimal(product['discount_price']).quantize(Decimal('0.01'))
@@ -1776,6 +1832,7 @@ def is_valid_url(url: str) -> bool:
     
     return re.match(regex, url) is not None
 
+
 async def filter_search_handler(update: Update, context: CallbackContext):
     query = update.callback_query
     choice = query.data
@@ -1790,6 +1847,7 @@ async def filter_search_handler(update: Update, context: CallbackContext):
     elif choice == 'profile':
         await profile_command_filter(query, user_id)
 
+
 async def display_filter_options(query, language):
     keyboard = [
         [InlineKeyboardButton(languages[language]['by_categories'], callback_data='filter_category')],
@@ -1798,6 +1856,7 @@ async def display_filter_options(query, language):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.message.reply_text(languages[language]['select_filter_type'], reply_markup=reply_markup)
+
 
 async def display_brand_filter_options(query, language):
     brands = await fetch_all_brands()
@@ -1974,6 +2033,7 @@ async def display_favorite_brands_products(query_message, user, language):
     for product in products:
         await display_product(query_message, product, language)
 
+
 async def display_favorite_categories_products(query_message, user, language):
     user = await sync_to_async(Profile.objects.get)(telegram_id=user.id)
     products = await fetch_all_fav_categories_products(user)
@@ -2014,6 +2074,7 @@ async def specific_filter_handler(update: Update, context: CallbackContext):
         await query.message.reply_text(messages['unknown_filter'][language])
         return
 
+
 async def favorite_category_options(query, user, language):
     user = await sync_to_async(Profile.objects.get)(telegram_id=user.id)
     categories = await fetch_user_favorite_category(user)
@@ -2031,6 +2092,7 @@ async def favorite_category_options(query, user, language):
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.message.reply_text(languages[language]['select_category'], reply_markup=reply_markup)
+
 
 async def edit_favorite_category(update, context):
     language = await get_user_language(user_id=update.effective_user.id, update=update, context=context)
@@ -2055,6 +2117,7 @@ async def edit_favorite_category(update, context):
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.callback_query.message.reply_text(languages[language]['select_category'], reply_markup=reply_markup)
+
 
 @sync_to_async
 def update_user_favorite_category(user, new_category_id):
@@ -2104,6 +2167,7 @@ async def handle_location(update: Update, context: CallbackContext):
                 languages[language]["location_invalid"]
             )
 
+
 async def favorite_category_selection(update: Update, context: CallbackContext):
     language = await get_user_language(update.effective_user.id, update, context)
     categories = await fetch_all_categories()
@@ -2125,7 +2189,6 @@ async def favorite_category_selection(update: Update, context: CallbackContext):
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(languages[language]["select_favorite_category"], reply_markup=reply_markup)
-
 
 
 async def toggle_favorite_category(update: Update, context: CallbackContext):
@@ -2153,6 +2216,7 @@ async def toggle_favorite_category(update: Update, context: CallbackContext):
         print(f"{languages[language]['unexpected_error']}: {str(e)}")
     finally:
         await query.answer()
+
 
 async def skip_store_recommendation(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -2225,6 +2289,7 @@ async def discount_percentage_options(update: Update, context: CallbackContext):
 
     await query.answer()
 
+
 async def notification_time(update: Update, context: CallbackContext):
     query = update.callback_query
     language = await get_user_language(update.effective_user.id, update, context)
@@ -2283,7 +2348,6 @@ async def notification_time(update: Update, context: CallbackContext):
     context.user_data.clear()
 
 
-
 async def feedback_command(update: Update, context: CallbackContext):
     language = await get_user_language(update.effective_user.id, update, context)
     feedback_prompt = {
@@ -2333,7 +2397,6 @@ async def save_feedback(user_id, feedback_text):
     return True
 
 
-
 async def command_restriction(update: Update, context: CallbackContext):
     user = update.effective_user
     language = await get_user_language(user.id, update, context)
@@ -2348,6 +2411,7 @@ async def command_restriction(update: Update, context: CallbackContext):
         await discounts_command(update, context)
     if update.message.text == '/merchant':
         await merchant_role_func(update, context)
+
 
 async def text_message_handler(update: Update, context: CallbackContext):
     step = context.user_data.get('step')
@@ -2373,9 +2437,9 @@ async def text_message_handler(update: Update, context: CallbackContext):
         await update.message.reply_text(languages[language]['unknown_command'])
 
 
-
 def is_time_to_notify(user_min_time, user_max_time):
     return True
+
 
 async def send_user_favorite_products(user, new_products, context):
     favorite_brands_ids = await sync_to_async(list)(user.favorite_brands.values_list('id', flat=True))
@@ -2480,6 +2544,7 @@ async def send_product_details(user, product, context):
         logging.warning(f"Invalid image URL for product {product.name}.")
         await context.bot.send_message(chat_id=user.telegram_id, text="This product's image is currently unavailable. Please check back later.")
 
+
 async def send_scheduled_messages(context):
     
     users = await sync_to_async(list)(Profile.objects.all())
@@ -2496,15 +2561,16 @@ async def send_scheduled_messages(context):
             await send_user_favorite_products(user, new_products, context)
             await asyncio.sleep(0.5)  
 
+
 def run_async_send_scheduled_messages(context):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-
     try:
         loop.run_until_complete(send_scheduled_messages(context))
     finally:
         if not loop.is_closed():
             loop.close()
+
 
 async def my_saved_products_filter(query, language):
     user_id =query.from_user.id
@@ -2604,6 +2670,7 @@ async def my_saved_products(update: Update, context: CallbackContext):
         language = 'en'
         await update.message.reply_text(messages['error_occurred'].get(language, messages['error_occurred']['en']).format(str(e)))
         
+
 async def merchant_role_func(update: Update, context: CallbackContext):
     user = update.effective_user
     language = await get_user_language(user.id, update, context)
@@ -2699,6 +2766,7 @@ async def edit_merchant(update: Update, context: CallbackContext):
 
     await query.message.reply_text(languages[language]['select_option'], reply_markup=reply_markup)
 
+
 async def edit_merchant_name(update: Update, context: CallbackContext):
     user = update.effective_user
     query = update.callback_query
@@ -2710,6 +2778,7 @@ async def edit_merchant_name(update: Update, context: CallbackContext):
     await query.answer()
     await query.message.reply_text(languages[language]['enter_new_name'])
     context.user_data['update_type'] = 'edit_name'  
+
 
 async def show_merchant_users(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -2764,7 +2833,6 @@ async def remove_merchant_user(update: Update, context: CallbackContext):
     except Exception as e:
         await query.message.reply_text(f"{languages[language]['error_occurred']} {str(e)}")
 
-
     
 async def receive_merchant_name(update: Update, context: CallbackContext):
     if context.user_data.get('update_type') == 'edit_name':
@@ -2810,6 +2878,7 @@ async def leave_merchant(update: Update, context: CallbackContext):
         languages[language]['confirm_leave_merchant'],
         reply_markup=reply_markup
     )
+
 
 async def confirm_leave_merchant(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -2922,6 +2991,7 @@ def validate_date(date_str):
         return True
     except ValueError:
         return False
+
 
 async def process_add_product(update: Update, context: CallbackContext):
     step = context.user_data.get('step')
