@@ -110,7 +110,7 @@ class Command(BaseCommand):
         scheduler = BackgroundScheduler()
         scheduler.add_job(
             run_async_send_scheduled_messages,
-            trigger=CronTrigger(hour=5, minute=16),
+            trigger=CronTrigger(hour=5, minute=25),
             args=[app],
             name='send_scheduled_messages',
             replace_existing=True
