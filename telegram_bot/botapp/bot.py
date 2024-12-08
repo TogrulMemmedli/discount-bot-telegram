@@ -1407,12 +1407,9 @@ async def handle_user_response(update: Update, context: CallbackContext):
                 await update.message.reply_text(languages[language]['birthdate_updated'])
             else:
                 await update.message.reply_text(languages[language]['birthdate_update_failed'])
-            context.user_data.pop('edit_field', None)
 
         except ValueError:
             await update.message.reply_text(languages[language]['invalid_date_format'])
-            context.user_data.pop('edit_field', None)
-
         
     context.user_data.pop('edit_field', None)
     await profile_command(update, context)
