@@ -1385,7 +1385,7 @@ async def handle_user_response(update: Update, context: CallbackContext):
             parsed_birthdate = check_birthday(birthday_input)
             if not parsed_birthdate:
                 await update.message.reply_text(languages[language]['invalid_date_format'])
-                return await profile_command(update, context)
+                return
 
             new_birthdate = datetime.strptime(parsed_birthdate, "%d-%m-%Y")
             
