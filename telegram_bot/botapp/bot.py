@@ -2654,7 +2654,13 @@ async def my_saved_products(update: Update, context: CallbackContext):
     try:
         user = await sync_to_async(Profile.objects.get)(telegram_id=user_id)
 
-        saved_products = await sync_to_async(lambda: list(SavedProduct.objects.filter(user=user)))()
+        saved_products = await sync_to_async(lambda: list(
+            SavedProduct.objects.filter(
+                user=user,
+                product__discount_end_date__gte=datetime.now()
+            )
+        ))()
+
 
         if saved_products:
 
