@@ -1379,21 +1379,26 @@ async def handle_user_response(update: Update, context: CallbackContext):
         else:
             await update.message.reply_text(languages[language]['location_update_failed'])
         
+        context.user_data.pop('edit_field', None)
+
     elif edit_field == 'birthday':
         try:
             birthday_input = update.message.text
             parsed_birthdate = check_birthday(birthday_input)
             if not parsed_birthdate:
                 await update.message.reply_text(languages[language]['invalid_date_format'])
+                context.user_data.pop('edit_field', None)
                 return
 
             new_birthdate = datetime.strptime(parsed_birthdate, "%d-%m-%Y")
             
             if new_birthdate < MIN_DATE:
                 await update.message.reply_text(languages[language]['birthdate_too_early'])
+                context.user_data.pop('edit_field', None)
                 return await profile_command(update, context)
             elif new_birthdate > MIN_AGE_DATE:
                 await update.message.reply_text(languages[language]['must_be_at_least_13'])
+                context.user_data.pop('edit_field', None)
                 return await profile_command(update, context)
 
             
@@ -1402,8 +1407,12 @@ async def handle_user_response(update: Update, context: CallbackContext):
                 await update.message.reply_text(languages[language]['birthdate_updated'])
             else:
                 await update.message.reply_text(languages[language]['birthdate_update_failed'])
+            context.user_data.pop('edit_field', None)
+
         except ValueError:
             await update.message.reply_text(languages[language]['invalid_date_format'])
+            context.user_data.pop('edit_field', None)
+
         
     context.user_data.pop('edit_field', None)
     await profile_command(update, context)
