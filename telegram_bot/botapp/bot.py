@@ -1387,7 +1387,6 @@ async def handle_user_response(update: Update, context: CallbackContext):
             parsed_birthdate = check_birthday(birthday_input)
             if not parsed_birthdate:
                 await update.message.reply_text(languages[language]['invalid_date_format'])
-                context.user_data.pop('edit_field', None)
                 return
 
             new_birthdate = datetime.strptime(parsed_birthdate, "%d-%m-%Y")
@@ -1401,7 +1400,6 @@ async def handle_user_response(update: Update, context: CallbackContext):
                 context.user_data.pop('edit_field', None)
                 return await profile_command(update, context)
 
-            
             success = await update_profile_data(user_id, 'birthday', new_birthdate)
             if success:
                 await update.message.reply_text(languages[language]['birthdate_updated'])
